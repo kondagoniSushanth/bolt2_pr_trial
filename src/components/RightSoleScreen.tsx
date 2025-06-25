@@ -13,8 +13,7 @@ import {
   XCircle,
   Wifi,
   WifiOff,
-  Loader2,
-  Clock
+  Loader2
 } from 'lucide-react';
 import BLEManager from '../utils/BLEManager';
 import HeatmapVisualization from './HeatmapVisualization';
@@ -88,10 +87,8 @@ const RightSoleScreen: React.FC = () => {
     setConsoleLog(prev => [...prev, '[INFO] Expected data format: PRESSURE_RIGHT:val1,val2,val3,val4,val5,val6,val7,val8']);
 
     return () => {
-      // Clean up timer on component unmount
       if (timerRef.current) {
         clearInterval(timerRef.current);
-        timerRef.current = null;
       }
       bleManager.current.disconnect();
     };
@@ -148,42 +145,22 @@ const RightSoleScreen: React.FC = () => {
       return;
     }
 
-    // 🔧 CRITICAL FIX: Clear any existing timer before starting a new one
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-      console.log('🔧 Cleared existing timer before starting new measurement');
-    }
-
-    // Reset all states for fresh measurement
     setIsRecording(true);
     setTestCompleted(false);
     setPressureData([]);
     setAveragePressures(Array(8).fill(0));
-    setTimeRemaining(20); // Reset to full 20 seconds
-    
     setConsoleLog(prev => [...prev, '[INFO] Starting 20-second measurement...']);
     setConsoleLog(prev => [...prev, '[INFO] Please stand still on the pressure sensors']);
     setConsoleLog(prev => [...prev, '[INFO] ESP32 will send pressure data via BLE']);
+    setTimeRemaining(20);
 
-    // Start the countdown timer
     timerRef.current = setInterval(() => {
       setTimeRemaining(prev => {
         const newTime = prev - 1;
-        console.log(`⏱️ Timer countdown: ${newTime} seconds remaining`);
-        
         if (newTime <= 0) {
-          // Timer completed - clean up and finish test
-          if (timerRef.current) {
-            clearInterval(timerRef.current);
-            timerRef.current = null;
-          }
-          
-          // Use setTimeout to ensure state updates are processed
           setTimeout(() => {
             completeTest();
           }, 100);
-          
           return 0;
         }
         return newTime;
@@ -194,9 +171,6 @@ const RightSoleScreen: React.FC = () => {
   };
 
   const stopMeasurement = () => {
-    console.log('🛑 Stopping measurement early...');
-    
-    // Clear the timer immediately
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -208,15 +182,7 @@ const RightSoleScreen: React.FC = () => {
   };
 
   const completeTest = () => {
-    console.log('✅ Completing test with data points:', pressureData.length);
-    
-    // Ensure timer is stopped
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    
-    setIsRecording(false);
+    console.log('Completing test with data points:', pressureData.length);
     
     if (pressureData.length > 0) {
       calculateAverages();
@@ -228,7 +194,7 @@ const RightSoleScreen: React.FC = () => {
   };
 
   const calculateAverages = () => {
-    console.log('📊 Calculating averages from', pressureData.length, 'data points');
+    console.log('Calculating averages from', pressureData.length, 'data points');
     
     if (pressureData.length === 0) return;
 
@@ -240,7 +206,7 @@ const RightSoleScreen: React.FC = () => {
     });
 
     const averages = sums.map(sum => Math.round(sum / pressureData.length));
-    console.log('📊 Calculated averages:', averages);
+    console.log('Calculated averages:', averages);
     setAveragePressures(averages);
 
     const maxValue = Math.max(...averages);
@@ -260,27 +226,6 @@ const RightSoleScreen: React.FC = () => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Get progress percentage for animations
-  const getProgressPercentage = () => {
-    return ((20 - timeRemaining) / 20) * 100;
-  };
-
-  // Get timer color based on remaining time
-  const getTimerColor = () => {
-    if (timeRemaining > 15) return 'text-green-400';
-    if (timeRemaining > 10) return 'text-yellow-400';
-    if (timeRemaining > 5) return 'text-orange-400';
-    return 'text-red-400';
-  };
-
-  // Get timer background color
-  const getTimerBgColor = () => {
-    if (timeRemaining > 15) return 'bg-green-900';
-    if (timeRemaining > 10) return 'bg-yellow-900';
-    if (timeRemaining > 5) return 'bg-orange-900';
-    return 'bg-red-900';
   };
 
   const downloadExcel = async () => {
@@ -468,119 +413,23 @@ const RightSoleScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* Enhanced Test Controls with Animated Timer */}
+            {/* Test Controls */}
             <div className="bg-gray-900 rounded-lg p-6 border border-gray-700">
-              <h2 className="text-xl font-medium mb-4 flex items-center space-x-2">
-                <Clock className="text-[#d32f2f]" size={20} />
-                <span>⏱️ 20-Second Averaging Test</span>
-              </h2>
+              <h2 className="text-xl font-medium mb-4">⏱️ 20-Second Averaging Test</h2>
               
-              <div className="space-y-6">
-                {/* Animated Timer Display */}
-                <div className="text-center relative">
-                  {/* Circular Progress Ring */}
-                  <div className="relative w-32 h-32 mx-auto mb-4">
-                    <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 120 120">
-                      {/* Background circle */}
-                      <circle
-                        cx="60"
-                        cy="60"
-                        r="50"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="8"
-                        className="text-gray-700"
-                      />
-                      {/* Progress circle */}
-                      <circle
-                        cx="60"
-                        cy="60"
-                        r="50"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="8"
-                        strokeLinecap="round"
-                        strokeDasharray={`${2 * Math.PI * 50}`}
-                        strokeDashoffset={`${2 * Math.PI * 50 * (1 - getProgressPercentage() / 100)}`}
-                        className={`transition-all duration-1000 ease-linear ${
-                          isRecording ? getTimerColor().replace('text-', 'text-') : 'text-gray-600'
-                        }`}
-                        style={{
-                          filter: isRecording ? 'drop-shadow(0 0 8px currentColor)' : 'none'
-                        }}
-                      />
-                    </svg>
-                    
-                    {/* Timer Text Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className={`text-4xl font-mono font-bold transition-all duration-300 ${
-                        isRecording ? `${getTimerColor()} animate-pulse` : 'text-gray-400'
-                      }`}>
-                        {formatTime(timeRemaining)}
-                      </div>
-                    </div>
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-4xl font-mono font-bold text-[#d32f2f]">
+                    {formatTime(timeRemaining)}
                   </div>
-
-                  {/* Status Messages with Animations */}
-                  <div className="space-y-2">
-                    {isRecording && (
-                      <div className={`text-sm px-4 py-2 rounded-full transition-all duration-300 ${getTimerBgColor()} bg-opacity-30 border ${
-                        timeRemaining <= 5 ? 'border-red-400 animate-pulse' : 
-                        timeRemaining <= 10 ? 'border-orange-400' : 'border-yellow-400'
-                      }`}>
-                        <div className="flex items-center justify-center space-x-2">
-                          <div className={`w-2 h-2 rounded-full animate-pulse ${
-                            timeRemaining <= 5 ? 'bg-red-400' : 
-                            timeRemaining <= 10 ? 'bg-orange-400' : 'bg-yellow-400'
-                          }`}></div>
-                          <span className={timeRemaining <= 5 ? 'text-red-300' : 
-                            timeRemaining <= 10 ? 'text-orange-300' : 'text-yellow-300'}>
-                            {timeRemaining <= 5 ? '🔥 Final countdown! Stay still!' :
-                             timeRemaining <= 10 ? '⚡ Almost done! Keep steady!' :
-                             '📊 Recording live data... Stand still!'}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {testCompleted && (
-                      <div className="text-sm text-green-400 bg-green-900 bg-opacity-30 px-4 py-2 rounded-full border border-green-400 animate-fade-in">
-                        <div className="flex items-center justify-center space-x-2">
-                          <CheckCircle size={16} />
-                          <span>✅ Test completed - Showing averaged results</span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {!isRecording && !testCompleted && (
-                      <div className="text-sm text-gray-400">
-                        Ready to start 20-second measurement
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Progress Bar */}
                   {isRecording && (
-                    <div className="mt-4">
-                      <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
-                        <div 
-                          className={`h-full transition-all duration-1000 ease-linear ${
-                            timeRemaining <= 5 ? 'bg-red-400' :
-                            timeRemaining <= 10 ? 'bg-orange-400' : 'bg-green-400'
-                          }`}
-                          style={{ 
-                            width: `${getProgressPercentage()}%`,
-                            boxShadow: isRecording ? '0 0 10px currentColor' : 'none'
-                          }}
-                        ></div>
-                      </div>
-                      <div className="flex justify-between text-xs text-gray-400 mt-1">
-                        <span>0:00</span>
-                        <span className="font-medium">
-                          {Math.round(getProgressPercentage())}% Complete
-                        </span>
-                        <span>0:20</span>
-                      </div>
+                    <div className="text-sm text-yellow-400 mt-2">
+                      Recording live data... Stand still!
+                    </div>
+                  )}
+                  {testCompleted && (
+                    <div className="text-sm text-green-400 mt-2">
+                      ✅ Test completed - Showing averaged results
                     </div>
                   )}
                 </div>
@@ -589,7 +438,7 @@ const RightSoleScreen: React.FC = () => {
                   <button
                     onClick={startMeasurement}
                     disabled={!bleConnected || isRecording}
-                    className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white py-3 px-4 rounded transition-all duration-200 flex items-center justify-center space-x-2 transform hover:scale-105 disabled:hover:scale-100"
+                    className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white py-2 px-4 rounded transition-colors flex items-center justify-center space-x-2"
                   >
                     <Play size={16} />
                     <span>Start Measurement</span>
@@ -598,7 +447,7 @@ const RightSoleScreen: React.FC = () => {
                   <button
                     onClick={stopMeasurement}
                     disabled={!isRecording}
-                    className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white py-3 px-4 rounded transition-all duration-200 flex items-center justify-center space-x-2 transform hover:scale-105 disabled:hover:scale-100"
+                    className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white py-2 px-4 rounded transition-colors flex items-center justify-center space-x-2"
                   >
                     <Square size={16} />
                     <span>Stop Early</span>
@@ -606,7 +455,7 @@ const RightSoleScreen: React.FC = () => {
                 </div>
 
                 {!bleConnected && (
-                  <div className="text-sm text-yellow-400 flex items-center space-x-2 bg-yellow-900 bg-opacity-20 p-3 rounded border border-yellow-700">
+                  <div className="text-sm text-yellow-400 flex items-center space-x-2">
                     <AlertTriangle size={16} />
                     <span>Please connect to ESP32 device to begin measurement.</span>
                   </div>
@@ -616,7 +465,7 @@ const RightSoleScreen: React.FC = () => {
 
             {/* Summary & Notes */}
             {testCompleted && (
-              <div className="bg-gray-900 rounded-lg p-6 border border-gray-700 animate-fade-in">
+              <div className="bg-gray-900 rounded-lg p-6 border border-gray-700">
                 <h2 className="text-xl font-medium mb-4">📊 Test Summary</h2>
                 
                 <div className="space-y-3 mb-4">
@@ -633,7 +482,7 @@ const RightSoleScreen: React.FC = () => {
                     <span className="font-medium">P{maxPressurePoint.index + 1} – {maxPressurePoint.value} kPa</span>
                   </div>
                   {maxPressurePoint.value > 200 && (
-                    <div className="text-yellow-400 text-sm flex items-center space-x-2 bg-yellow-900 bg-opacity-30 p-2 rounded border border-yellow-700">
+                    <div className="text-yellow-400 text-sm flex items-center space-x-2">
                       <AlertTriangle size={16} />
                       <span>Pressure point exceeded 200kPa - consider medical evaluation</span>
                     </div>
@@ -646,7 +495,7 @@ const RightSoleScreen: React.FC = () => {
                     value={doctorNotes}
                     onChange={(e) => setDoctorNotes(e.target.value)}
                     placeholder="Add clinical observations, patient symptoms, or treatment recommendations..."
-                    className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white h-24 resize-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                    className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white h-24 resize-none"
                   />
                 </div>
               </div>
@@ -658,7 +507,7 @@ const RightSoleScreen: React.FC = () => {
             <h2 className="text-xl font-medium mb-4 flex items-center justify-between">
               <span>🦶 Right Sole Heatmap</span>
               {testCompleted && (
-                <span className="text-sm bg-green-900 text-green-100 px-2 py-1 rounded-full animate-pulse">
+                <span className="text-sm bg-green-900 text-green-100 px-2 py-1 rounded-full">
                   Averaged Results
                 </span>
               )}
@@ -690,13 +539,13 @@ const RightSoleScreen: React.FC = () => {
 
             {/* Export Controls */}
             {testCompleted && (
-              <div className="bg-gray-900 rounded-lg p-6 border border-gray-700 animate-fade-in">
+              <div className="bg-gray-900 rounded-lg p-6 border border-gray-700">
                 <h2 className="text-xl font-medium mb-4">🧾 Download Reports</h2>
                 
                 <div className="space-y-3">
                   <button
                     onClick={downloadExcel}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-all duration-200 flex items-center justify-center space-x-2 transform hover:scale-105"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors flex items-center justify-center space-x-2"
                   >
                     <FileText size={16} />
                     <span>Download Excel (.xlsx)</span>
@@ -704,7 +553,7 @@ const RightSoleScreen: React.FC = () => {
 
                   <button
                     onClick={downloadHeatmapImage}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition-all duration-200 flex items-center justify-center space-x-2 transform hover:scale-105"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition-colors flex items-center justify-center space-x-2"
                   >
                     <Image size={16} />
                     <span>Download Heatmap Image (.png)</span>
@@ -712,7 +561,7 @@ const RightSoleScreen: React.FC = () => {
 
                   <button
                     onClick={downloadAll}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded transition-all duration-200 flex items-center justify-center space-x-2 transform hover:scale-105"
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded transition-colors flex items-center justify-center space-x-2"
                   >
                     <Archive size={16} />
                     <span>Export All (.zip)</span>
@@ -727,7 +576,7 @@ const RightSoleScreen: React.FC = () => {
         <div className="flex justify-center pt-6 border-t border-gray-700">
           <Link
             to="/left-sole"
-            className="bg-[#d32f2f] hover:bg-red-700 text-white py-2 px-6 rounded transition-all duration-200 transform hover:scale-105"
+            className="bg-[#d32f2f] hover:bg-red-700 text-white py-2 px-6 rounded transition-colors"
           >
             ← View Left Sole
           </Link>
